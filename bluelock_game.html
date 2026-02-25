@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BLUE LOCK</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Share+Tech+Mono&family=Rajdhani:wght@500;600;700&display=swap');
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  :root {
+    --bl-blue: #00aaff;
+    --bl-cyan: #00eeff;
+    --bl-dark: #04080f;
+    --bl-panel: #080d18;
+    --bl-border: rgba(0,170,255,0.25);
+    --bl-red: #ff2244;
+    --bl-gold: #ffe566;
+    --white: #eef4ff;
+  }
+
+  body {
+    background: var(--bl-dark);
+    color: var(--white);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* scanline overlay */
+  body::before {
+    content:'';
+    position:fixed; inset:0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.05) 2px, rgba(0,0,0,0.05) 4px);
+    pointer-events:none; z-index:9998;
+  }
+
+  .screen { display:none; flex-direction:column; align-items:center; justify-content:center; width:100%; min-height:100vh; }
+  .screen.active { display:flex; }
+
+  /* ===== MAIN MENU ===== */
+  #menu { background: radial-gradient(ellipse at 50% 30%, #001a33 0%, var(--bl-dark) 65%); gap:0; }
+
+  .bl-logo {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 5.5rem;
+    letter-spacing: 0.15em;
+    color: var(--bl-cyan);
+    text-shadow: 0 0 30px rgba(0,238,255,0.7), 0 0 80px rgba(0,170,255,0.3);
+    margin-bottom: 0;
+    line-height: 1;
+  }
+  .bl-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.4em;
+    color: rgba(0,170,255,0.5);
+    margin-bottom: 0.5rem;
+  }
+  .bl-ego-quote {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.25);
+    letter-spacing: 0.1em;
+    font-style: italic;
+    margin-bottom: 2.5rem;
+    text-align: center;
+    max-width: 420px;
+  }
+
+  .stats-panel {
+    background: rgba(0,10,30,0.8);
+    border: 1px solid var(--bl-border);
+    padding: 1.4rem 2rem;
+    width: 500px;
+    margin-bottom: 1.2rem;
+    position: relative;
+  }
+  .stats-panel::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:2px;
+    background: linear-gradient(to right, transparent, var(--bl-cyan), transparent);
+  }
+  .stats-panel h3 {
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--bl-cyan);
+    margin-bottom: 1rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.3em;
+  }
+  .stat-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem; font-family:'Share Tech Mono',monospace; font-size:0.8rem; color:rgba(200,220,255,0.6); }
+  .stat-bar { width: 130px; height: 5px; background: rgba(255,255,255,0.07); position:relative; display:inline-block; vertical-align:middle; }
+  .stat-fill { height:100%; background: linear-gradient(to right, var(--bl-blue), var(--bl-cyan)); transition: width 0.4s; box-shadow: 0 0 6px var(--bl-cyan); }
+
+  .training-info {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+    color: rgba(0,170,255,0.5);
+    margin-bottom: 1.2rem;
+    letter-spacing: 0.1em;
+  }
+
+  .menu-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; width:500px; margin-bottom:1rem; }
+
+  .btn {
+    background: transparent;
+    border: 1px solid var(--bl-blue);
+    color: var(--bl-blue);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    padding: 0.8em 1.4em;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+  }
+  .btn:hover { background: var(--bl-blue); color: #000; box-shadow: 0 0 20px rgba(0,170,255,0.4); }
+  .btn.full { grid-column:1/-1; font-size:1.3rem; border-color: var(--bl-cyan); color: var(--bl-cyan); }
+  .btn.full:hover { background: var(--bl-cyan); color:#000; box-shadow: 0 0 30px rgba(0,238,255,0.5); }
+  .btn.danger { border-color: rgba(255,255,255,0.2); color: rgba(255,255,255,0.3); font-size:0.85rem; }
+  .btn.danger:hover { background:rgba(255,255,255,0.1); color:#fff; }
+  .btn.disabled { opacity:0.3; cursor:not-allowed; }
+  .btn.disabled:hover { background:transparent; color:var(--bl-blue); box-shadow:none; }
+
+  /* ===== TRAINING ===== */
+  #training { background: radial-gradient(ellipse at 50% 20%, #000d1a 0%, var(--bl-dark) 70%); gap:0; }
+  .train-title { font-family:'Black Han Sans',sans-serif; font-size:2.2rem; color:var(--bl-cyan); letter-spacing:0.2em; margin-bottom:0.3rem; text-shadow:0 0 20px rgba(0,238,255,0.5); }
+  .train-info { font-family:'Share Tech Mono',monospace; color:rgba(0,170,255,0.5); margin-bottom:1.5rem; font-size:0.75rem; letter-spacing:0.15em; }
+  .train-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.8rem; width:560px; margin-bottom:1.5rem; }
+  .train-card {
+    background: rgba(0,10,30,0.8);
+    border: 1px solid var(--bl-border);
+    padding: 1.2rem 0.8rem;
+    text-align:center;
+    cursor:pointer;
+    transition: all 0.15s;
+    clip-path: polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);
+  }
+  .train-card:hover { border-color:var(--bl-cyan); background:rgba(0,170,255,0.1); box-shadow:0 0 15px rgba(0,238,255,0.15); }
+  .train-card .train-icon { font-size:1.8rem; margin-bottom:0.4rem; }
+  .train-card .train-name { font-size:0.85rem; font-weight:700; letter-spacing:0.1em; color:var(--bl-cyan); }
+  .train-card .train-stat { font-family:'Share Tech Mono',monospace; font-size:0.7rem; color:rgba(255,255,255,0.4); margin-top:0.3rem; }
+  .train-msg { font-family:'Share Tech Mono',monospace; color:#00ffaa; min-height:1.5em; margin-bottom:0.8rem; font-size:0.82rem; letter-spacing:0.05em; }
+
+  /* ===== GAME ===== */
+  #game { background:var(--bl-dark); flex-direction:row; gap:0.8rem; padding:0.8rem; align-items:flex-start; justify-content:center; }
+
+  #field-wrap { display:flex; flex-direction:column; align-items:center; gap:0.4rem; }
+
+  #field-canvas { border:2px solid rgba(0,170,255,0.4); display:block; cursor:crosshair; box-shadow:0 0 30px rgba(0,170,255,0.15); }
+
+  .field-label { font-family:'Share Tech Mono',monospace; font-size:0.65rem; color:rgba(0,170,255,0.4); letter-spacing:0.25em; }
+
+  #side-panel { width:210px; display:flex; flex-direction:column; gap:0.6rem; }
+
+  .panel-box {
+    background:rgba(0,10,30,0.9);
+    border:1px solid var(--bl-border);
+    padding:0.8rem;
+    position:relative;
+  }
+  .panel-box::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(to right,transparent,var(--bl-blue),transparent); }
+  .panel-box h4 { font-family:'Share Tech Mono',monospace; color:var(--bl-blue); font-size:0.65rem; letter-spacing:0.25em; margin-bottom:0.6rem; }
+
+  .panel-stat { font-family:'Share Tech Mono',monospace; font-size:0.72rem; color:rgba(200,220,255,0.5); display:flex; justify-content:space-between; margin-bottom:0.3rem; }
+  .panel-stat span:last-child { color:var(--bl-cyan); }
+
+  .score-display { font-family:'Black Han Sans',sans-serif; font-size:2.8rem; text-align:center; letter-spacing:0.1em; line-height:1; }
+  .score-display span.blue { color:var(--bl-cyan); text-shadow:0 0 15px var(--bl-cyan); }
+  .score-display span.sep { color:rgba(255,255,255,0.2); font-size:1.5rem; }
+  .score-display span.red { color:var(--bl-red); text-shadow:0 0 15px var(--bl-red); }
+  .score-teams { display:flex; justify-content:space-between; font-size:0.6rem; font-family:'Share Tech Mono',monospace; color:rgba(255,255,255,0.3); margin-top:0.2rem; letter-spacing:0.1em; }
+
+  .event-log { font-family:'Share Tech Mono',monospace; font-size:0.68rem; color:rgba(255,255,255,0.4); max-height:100px; overflow-y:auto; line-height:1.7; }
+  .event-log .ev { border-bottom:1px solid rgba(255,255,255,0.04); padding:0.15rem 0; }
+  .ev.good { color:#00ffaa; }
+  .ev.bad { color:#ff6688; }
+  .ev.neutral { color:rgba(0,238,255,0.6); }
+
+  .action-btns { display:flex; flex-wrap:wrap; gap:0.4rem; }
+  .act-btn {
+    background:transparent;
+    border:1px solid rgba(0,170,255,0.25);
+    color:rgba(0,170,255,0.7);
+    font-family:'Rajdhani',sans-serif;
+    font-size:0.72rem;
+    font-weight:700;
+    letter-spacing:0.1em;
+    padding:0.35em 0.6em;
+    cursor:pointer;
+    transition:all 0.1s;
+    flex:1;
+    min-width:55px;
+    clip-path:polygon(4px 0%,100% 0%,calc(100%-4px) 100%,0% 100%);
+  }
+  .act-btn:hover { border-color:var(--bl-cyan); color:var(--bl-cyan); background:rgba(0,238,255,0.08); }
+  .act-btn.shoot-btn { border-color:rgba(255,34,68,0.5); color:rgba(255,100,120,0.9); }
+  .act-btn.shoot-btn:hover { background:rgba(255,34,68,0.15); border-color:var(--bl-red); color:var(--bl-red); }
+
+  #timer-bar { width:100%; height:4px; background:rgba(255,255,255,0.06); }
+  #timer-fill { height:100%; background:linear-gradient(to right,var(--bl-cyan),var(--bl-blue),var(--bl-red)); transition:width 1s linear; }
+
+  .possession-indicator { font-family:'Share Tech Mono',monospace; font-size:0.68rem; padding:0.25rem 0.5rem; text-align:center; margin-bottom:0.2rem; letter-spacing:0.1em; }
+  .poss-blue { background:rgba(0,170,255,0.1); color:var(--bl-cyan); border:1px solid rgba(0,170,255,0.2); }
+  .poss-red { background:rgba(255,34,68,0.1); color:#ff8899; border:1px solid rgba(255,34,68,0.2); }
+
+  /* ===== RESULT ===== */
+  #result { background:radial-gradient(ellipse at 50% 30%, #000d1a 0%, var(--bl-dark) 65%); gap:0; }
+  .result-title { font-family:'Black Han Sans',sans-serif; font-size:4.5rem; letter-spacing:0.15em; margin-bottom:0.3rem; text-shadow:0 0 40px currentColor; }
+  .result-score { font-family:'Share Tech Mono',monospace; font-size:2.5rem; margin-bottom:0.5rem; }
+  .result-quote { font-family:'Share Tech Mono',monospace; font-size:0.72rem; color:rgba(255,255,255,0.25); font-style:italic; margin-bottom:2rem; text-align:center; max-width:400px; }
+  .result-btns { display:flex; gap:1rem; }
+
+  /* ===== NOTIF ===== */
+  #notif {
+    position:fixed; top:15px; left:50%; transform:translateX(-50%);
+    background:rgba(0,0,0,0.95); border:1px solid var(--bl-cyan);
+    color:var(--bl-cyan); font-family:'Black Han Sans',sans-serif;
+    font-size:1.1rem; padding:0.5rem 2rem; z-index:9999;
+    opacity:0; transition:opacity 0.25s; pointer-events:none;
+    letter-spacing:0.15em; text-shadow:0 0 15px var(--bl-cyan);
+    box-shadow:0 0 20px rgba(0,238,255,0.2);
+  }
+  #notif.show { opacity:1; }
+  #notif.goal-notif { border-color:var(--bl-gold); color:var(--bl-gold); text-shadow:0 0 20px var(--bl-gold); }
+
+  /* ===== EGO SCREEN ===== */
+  #egoscreen {
+    position:fixed; inset:0; background:rgba(0,0,0,0.96);
+    display:none; align-items:center; justify-content:center;
+    z-index:9997; flex-direction:column; gap:1rem;
+  }
+  #egoscreen.show { display:flex; }
+  .ego-text {
+    font-family:'Black Han Sans',sans-serif; font-size:1.6rem;
+    color:var(--bl-cyan); letter-spacing:0.2em; text-align:center;
+    max-width:500px; line-height:1.4; text-shadow:0 0 20px var(--bl-cyan);
+  }
+  .ego-name { font-family:'Share Tech Mono',monospace; font-size:0.75rem; color:rgba(255,255,255,0.3); letter-spacing:0.3em; margin-top:0.5rem; }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width:3px; } ::-webkit-scrollbar-track { background:transparent; } ::-webkit-scrollbar-thumb { background:var(--bl-border); }
+
+  /* ===== BIND BUTTONS ===== */
+  .bind-btn {
+    background: rgba(0,10,30,0.9);
+    border: 1px solid var(--bl-border);
+    color: var(--bl-cyan);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    padding: 0.5em 0.4em;
+    cursor: pointer;
+    width: 100%;
+    letter-spacing: 0.05em;
+    transition: all 0.15s;
+    clip-path: polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);
+  }
+  .bind-btn:hover { border-color: var(--bl-cyan); background: rgba(0,170,255,0.1); }
+  .bind-btn.listening { border-color: #ffcc44; color: #ffcc44; background: rgba(255,200,0,0.08); animation: pulse 0.7s infinite alternate; }
+  @keyframes pulse { from { box-shadow: 0 0 4px rgba(255,200,0,0.2); } to { box-shadow: 0 0 12px rgba(255,200,0,0.6); } }
+</style>
+</head>
+<body>
+
+<div id="notif"></div>
+
+<!-- EGO INTRO SCREEN -->
+<div id="egoscreen">
+  <div class="ego-text" id="ego-text"></div>
+  <div class="ego-name">— JINPACHI EGO</div>
+  <button class="btn" style="margin-top:1rem" onclick="dismissEgo()">I UNDERSTAND</button>
+</div>
+
+<!-- MAIN MENU -->
+<div id="menu" class="screen active">
+  <div class="bl-logo">BLUE LOCK</div>
+  <div class="bl-sub">PROJECT — WORLD'S BEST STRIKER</div>
+  <div class="bl-ego-quote">"Egoism is the source of all creation. Only those who devour their opponents will survive."</div>
+
+  <div class="stats-panel">
+    <h3>// PLAYER ABILITY STATS</h3>
+    <div class="stat-row">
+      <span>DRIBBLING</span>
+      <div class="stat-bar"><div class="stat-fill" id="stat-drib-bar"></div></div>
+      <span id="stat-drib-val" style="min-width:40px;text-align:right;color:var(--bl-cyan)"></span>
+    </div>
+    <div class="stat-row">
+      <span>SHOOTING</span>
+      <div class="stat-bar"><div class="stat-fill" id="stat-shoot-bar"></div></div>
+      <span id="stat-shoot-val" style="min-width:40px;text-align:right;color:var(--bl-cyan)"></span>
+    </div>
+    <div class="stat-row">
+      <span>DEFENSE</span>
+      <div class="stat-bar"><div class="stat-fill" id="stat-def-bar"></div></div>
+      <span id="stat-def-val" style="min-width:40px;text-align:right;color:var(--bl-cyan)"></span>
+    </div>
+    <div class="stat-row">
+      <span>SPEED</span>
+      <div class="stat-bar"><div class="stat-fill" id="stat-spd-bar"></div></div>
+      <span id="stat-spd-val" style="min-width:40px;text-align:right;color:var(--bl-cyan)"></span>
+    </div>
+  </div>
+
+  <div class="training-info" id="train-remaining-text"></div>
+
+  <div class="menu-grid">
+    <button class="btn full" id="btn-match" onclick="startMatch()">▶ ENTER THE FIELD</button>
+    <button class="btn" id="btn-train" onclick="goToTraining()">⚡ TRAINING ROOM</button>
+    <button class="btn" onclick="goToSettings()">⚙ SETTINGS</button>
+    <button class="btn danger" onclick="resetGame()">↺ RESET DATA</button>
+  </div>
+</div>
+
+<!-- TRAINING SCREEN -->
+<div id="training" class="screen">
+  <div class="train-title">TRAINING ROOM</div>
+  <div class="train-info" id="train-session-info"></div>
+  <div class="train-msg" id="train-msg">Select a stat to train.</div>
+  <div class="train-grid">
+    <div class="train-card" id="tc-drib" onclick="doTrain('dribbling')">
+      <div class="train-icon">🏃</div>
+      <div class="train-name">DRIBBLING</div>
+      <div class="train-stat" id="tc-drib-val"></div>
+    </div>
+    <div class="train-card" id="tc-shoot" onclick="doTrain('shooting')">
+      <div class="train-icon">🎯</div>
+      <div class="train-name">SHOOTING</div>
+      <div class="train-stat" id="tc-shoot-val"></div>
+    </div>
+    <div class="train-card" id="tc-def" onclick="doTrain('defense')">
+      <div class="train-icon">🛡️</div>
+      <div class="train-name">DEFENSE</div>
+      <div class="train-stat" id="tc-def-val"></div>
+    </div>
+    <div class="train-card" id="tc-spd" onclick="doTrain('speed')">
+      <div class="train-icon">⚡</div>
+      <div class="train-name">SPEED</div>
+      <div class="train-stat" id="tc-spd-val"></div>
+    </div>
+    <div class="train-card" id="tc-str" onclick="doTrain('strength')">
+      <div class="train-icon">💪</div>
+      <div class="train-name">STRENGTH</div>
+      <div class="train-stat" id="tc-str-val"></div>
+    </div>
+    <div class="train-card" id="tc-stam" onclick="doTrain('stamina')">
+      <div class="train-icon">❤️</div>
+      <div class="train-name">STAMINA</div>
+      <div class="train-stat" id="tc-stam-val"></div>
+    </div>
+  </div>
+  <button class="btn" onclick="backToMenu()">← BACK</button>
+</div>
+
+<!-- SETTINGS SCREEN -->
+<div id="settings" class="screen">
+  <div class="train-title">SETTINGS</div>
+  <div class="train-info">CLICK A BUTTON THEN PRESS ANY KEY TO REBIND</div>
+  <div class="train-msg" id="settings-msg"></div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.7rem;width:520px;margin-bottom:1.5rem;">
+    <div class="panel-box" style="grid-column:1/-1;">
+      <h4>// MOVEMENT</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0.5rem;margin-top:0.5rem;">
+        <div style="text-align:center">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:rgba(255,255,255,0.35);margin-bottom:0.3rem;">UP</div>
+          <button class="bind-btn" id="bind-up" onclick="startRebind('up')"></button>
+        </div>
+        <div style="text-align:center">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:rgba(255,255,255,0.35);margin-bottom:0.3rem;">DOWN</div>
+          <button class="bind-btn" id="bind-down" onclick="startRebind('down')"></button>
+        </div>
+        <div style="text-align:center">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:rgba(255,255,255,0.35);margin-bottom:0.3rem;">LEFT</div>
+          <button class="bind-btn" id="bind-left" onclick="startRebind('left')"></button>
+        </div>
+        <div style="text-align:center">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:rgba(255,255,255,0.35);margin-bottom:0.3rem;">RIGHT</div>
+          <button class="bind-btn" id="bind-right" onclick="startRebind('right')"></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-box" style="grid-column:1/-1;">
+      <h4>// ACTIONS</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:0.5rem;margin-top:0.5rem;">
+        <div style="text-align:center">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:rgba(255,255,255,0.35);margin-bottom:0.3rem;">SHOOT</div>
+          <button class="bind-btn" id="bind-shoot" onclick="startRebind('shoot')"></button>
+        </div>
+        <div style="text-align:center">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:rgba(255,255,255,0.35);margin-bottom:0.3rem;">DRIBBLE</div>
+          <button class="bind-btn" id="bind-dribble" onclick="startRebind('dribble')"></button>
+        </div>
+        <div style="text-align:center">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:rgba(255,255,255,0.35);margin-bottom:0.3rem;">PASS</div>
+          <button class="bind-btn" id="bind-pass" onclick="startRebind('pass')"></button>
+        </div>
+        <div style="text-align:center">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:rgba(255,255,255,0.35);margin-bottom:0.3rem;">TACKLE</div>
+          <button class="bind-btn" id="bind-tackle" onclick="startRebind('tackle')"></button>
+        </div>
+        <div style="text-align:center">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:rgba(255,255,255,0.35);margin-bottom:0.3rem;">DASH</div>
+          <button class="bind-btn" id="bind-sprint" onclick="startRebind('sprint')"></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:1rem;">
+    <button class="btn" onclick="resetBinds()">↺ RESET DEFAULTS</button>
+    <button class="btn" onclick="backToMenu()">← BACK</button>
+  </div>
+</div>
+<div id="game" class="screen">
+  <div id="field-wrap">
+    <div class="field-label">— OPPONENT GOAL —</div>
+    <canvas id="field-canvas" width="420" height="630"></canvas>
+    <div class="field-label">— YOUR GOAL —</div>
+    <div id="timer-bar"><div id="timer-fill" style="width:100%"></div></div>
+  </div>
+
+  <div id="side-panel">
+    <div class="panel-box">
+      <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:rgba(0,170,255,0.5);letter-spacing:0.3em;margin-bottom:0.3rem;">MATCH TIME</div>
+      <div id="timer-display" style="font-family:'Black Han Sans',sans-serif;font-size:2.4rem;text-align:center;color:var(--bl-cyan);text-shadow:0 0 15px var(--bl-cyan);letter-spacing:0.1em;">2:00</div>
+      <div id="timer-bar" style="margin-top:0.4rem;"><div id="timer-fill" style="width:100%"></div></div>
+    </div>
+
+    <div class="panel-box">
+      <div class="score-display">
+        <span class="blue" id="score-blue">0</span>
+        <span class="sep"> — </span>
+        <span class="red" id="score-red">0</span>
+      </div>
+      <div class="score-teams"><span>BLUE LOCK</span><span>WORLD FIVE</span></div>
+      <div id="possession-display" class="possession-indicator poss-blue">⚽ BLUE LOCK POSSESSION</div>
+    </div>
+
+    <div class="panel-box">
+      <h4>// YOUR ABILITY</h4>
+      <div class="panel-stat"><span>DRIBBLING</span><span id="gs-drib"></span></div>
+      <div class="panel-stat"><span>SHOOTING</span><span id="gs-shoot"></span></div>
+      <div class="panel-stat"><span>DEFENSE</span><span id="gs-def"></span></div>
+      <div class="panel-stat"><span>SPEED</span><span id="gs-spd"></span></div>
+    </div>
+
+    <div class="panel-box">
+      <h4>// ACTIONS</h4>
+      <div class="action-btns">
+        <button class="act-btn" onclick="doAction('dribble')">DRIBBLE</button>
+        <button class="act-btn" onclick="doAction('pass')">PASS</button>
+        <button class="act-btn shoot-btn" onclick="doAction('shoot')">DIRECT SHOT</button>
+        <button class="act-btn" onclick="doAction('tackle')">TACKLE</button>
+        <button class="act-btn" onclick="doAction('sprint')">DASH</button>
+      </div>
+      <div id="controls-hint" style="font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:rgba(255,255,255,0.2);margin-top:0.5rem;line-height:1.7;"></div>
+    </div>
+
+    <div class="panel-box">
+      <h4>// MATCH LOG</h4>
+      <div class="event-log" id="event-log"></div>
+    </div>
+
+    <button onclick="confirmForfeit()" style="width:100%;background:transparent;border:1px solid #ff2244;color:#ff2244;font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;letter-spacing:0.15em;padding:0.7em;cursor:pointer;text-transform:uppercase;transition:all 0.15s;clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);" onmouseover="this.style.background='#ff2244';this.style.color='#000'" onmouseout="this.style.background='transparent';this.style.color='#ff2244'">⚑ FORFEIT MATCH</button>
+  </div>
+</div>
+
+<!-- RESULT SCREEN -->
+<div id="result" class="screen">
+  <div class="result-title" id="result-title">VICTORY</div>
+  <div class="result-score" id="result-score"></div>
+  <div class="result-quote" id="result-quote"></div>
+  <div class="stats-panel" style="width:420px;margin-bottom:1.5rem;">
+    <h3>// MATCH ANALYSIS</h3>
+    <div id="result-details" style="font-family:'Share Tech Mono',monospace;font-size:0.78rem;color:rgba(200,220,255,0.5);line-height:2.2;"></div>
+  </div>
+  <div class="result-btns">
+    <button class="btn full" style="grid-column:auto" onclick="goToTrainingPost()">⚡ EXTRA TRAINING</button>
+    <button class="btn danger" onclick="backToMenu()">← MENU</button>
+  </div>
+</div>
+
+<script>
+// ===== CONTROLS =====
+const DEFAULT_BINDS = {
+  up:'KeyW', down:'KeyS', left:'KeyA', right:'KeyD',
+  shoot:'KeyZ', dribble:'KeyX', pass:'KeyC', tackle:'KeyV', sprint:'Space'
+};
+let controls = JSON.parse(localStorage.getItem('blLockControls') || 'null') || {...DEFAULT_BINDS};
+// Validate - if any key is missing, reset to defaults
+if(!controls.up || !controls.down || !controls.left || !controls.right){
+  controls = {...DEFAULT_BINDS};
+  localStorage.removeItem('blLockControls');
+}
+
+function saveControls(){ localStorage.setItem('blLockControls', JSON.stringify(controls)); }
+
+function keyLabel(code){
+  const map = {
+    Space:'SPACE',KeyW:'W',KeyA:'A',KeyS:'S',KeyD:'D',
+    KeyZ:'Z',KeyX:'X',KeyC:'C',KeyV:'V',KeyQ:'Q',KeyE:'E',KeyR:'R',
+    KeyF:'F',KeyG:'G',KeyH:'H',KeyJ:'J',KeyK:'K',KeyL:'L',
+    KeyB:'B',KeyN:'N',KeyM:'M',KeyT:'T',KeyY:'Y',KeyU:'U',KeyI:'I',KeyO:'O',KeyP:'P',
+    ArrowUp:'↑',ArrowDown:'↓',ArrowLeft:'←',ArrowRight:'→',
+    ShiftLeft:'L-SHIFT',ShiftRight:'R-SHIFT',
+    ControlLeft:'L-CTRL',ControlRight:'R-CTRL',
+    AltLeft:'L-ALT',AltRight:'R-ALT',
+    Enter:'ENTER',Backspace:'BKSP',Tab:'TAB',
+    Digit1:'1',Digit2:'2',Digit3:'3',Digit4:'4',Digit5:'5',
+    Digit6:'6',Digit7:'7',Digit8:'8',Digit9:'9',Digit0:'0',
+  };
+  return map[code] || code.replace('Key','').replace('Digit','');
+}
+
+function renderBindButtons(){
+  for(let action of Object.keys(DEFAULT_BINDS)){
+    let btn = document.getElementById('bind-'+action);
+    if(btn) btn.textContent = keyLabel(controls[action]);
+  }
+}
+
+let rebinding = null;
+function startRebind(action){
+  if(rebinding) document.getElementById('bind-'+rebinding)?.classList.remove('listening');
+  rebinding = action;
+  let btn = document.getElementById('bind-'+action);
+  btn.textContent = '...';
+  btn.classList.add('listening');
+  document.getElementById('settings-msg').textContent = `Press any key for ${action.toUpperCase()}`;
+}
+
+function resetBinds(){
+  controls = {...DEFAULT_BINDS};
+  saveControls();
+  renderBindButtons();
+  document.getElementById('settings-msg').textContent = 'Controls reset to default.';
+}
+
+function goToSettings(){
+  renderBindButtons();
+  document.getElementById('settings-msg').textContent = '';
+  show('settings');
+}
+
+// Listen for rebind keypresses
+document.addEventListener('keydown', e => {
+  if(rebinding){
+    e.preventDefault();
+    // Don't allow Escape as a bind
+    if(e.code === 'Escape'){ 
+      document.getElementById('bind-'+rebinding)?.classList.remove('listening');
+      rebinding = null;
+      document.getElementById('settings-msg').textContent = 'Cancelled.';
+      return;
+    }
+    controls[rebinding] = e.code;
+    saveControls();
+    renderBindButtons();
+    document.getElementById('bind-'+rebinding)?.classList.remove('listening');
+    document.getElementById('settings-msg').textContent = `${rebinding.toUpperCase()} bound to ${keyLabel(e.code)}`;
+    rebinding = null;
+    updateControlsHint();
+    return;
+  }
+});
+
+function updateControlsHint(){
+  let h = document.getElementById('controls-hint');
+  if(!h) return;
+  h.innerHTML =
+    `${keyLabel(controls.up)}/${keyLabel(controls.down)}/${keyLabel(controls.left)}/${keyLabel(controls.right)} MOVE<br>` +
+    `${keyLabel(controls.shoot)}=SHOT &nbsp; ${keyLabel(controls.dribble)}=DRIBBLE &nbsp; ${keyLabel(controls.pass)}=PASS<br>` +
+    `${keyLabel(controls.tackle)}=TACKLE &nbsp; ${keyLabel(controls.sprint)}=DASH`;
+}
+
+function confirmForfeit(){
+  if(confirm('Forfeit this match? It will count as a loss.')) endMatch();
+}
+const egoQuotes = [
+  "The weak have no right to remain in Blue Lock. Show me your ego.",
+  "Victory belongs to those who are consumed by the desire to win.",
+  "You are not a team player. You are a weapon. Act like one.",
+  "If you don't score, you don't exist. Simple.",
+  "Every player on this field is your prey. Devour them.",
+];
+const winQuotes = [
+  "That is the ego of a true striker. Remember this feeling.",
+  "Excellent. Now destroy someone stronger.",
+  "You're starting to understand what it means to be number one.",
+];
+const loseQuotes = [
+  "Pathetic. If you can't score, you have no value here.",
+  "You were outplayed. Train harder or get eliminated.",
+  "The weak get devoured. That is the law of Blue Lock.",
+];
+
+// ===== SAVE =====
+let save = JSON.parse(localStorage.getItem('blueLockRPG') || 'null') || {
+  dribbling:10, shooting:10, defense:10, speed:10, strength:10, stamina:10,
+  trainingToday:0, totalMatches:0
+};
+const MAX_STAT=100, TRAIN_PER_DAY=5;
+let postMatch=false, extraTraining=false;
+
+// ===== CANVAS =====
+const COLS=3, ROWS=3;
+const CELL_W=140, CELL_H=210;
+const FIELD_W=COLS*CELL_W, FIELD_H=ROWS*CELL_H;
+const canvas=document.getElementById('field-canvas');
+const ctx=canvas.getContext('2d');
+canvas.width=FIELD_W; canvas.height=FIELD_H;
+
+let player, teammates, enemies, gk, ball;
+let hasPossession=true;
+let ballCarrier=null;
+let scoreBlue=0, scoreRed=0;
+let matchRunning=false;
+let matchTime=120;
+let aiInterval=null;
+let matchGoals={blue:0,red:0,shots:0,tackles:0};
+
+function rnd(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function dist(a,b){ return Math.hypot(a.x-b.x,a.y-b.y); }
+
+// ===== INIT MATCH =====
+function initMatch(){
+  scoreBlue=0; scoreRed=0; matchTime=120;
+  matchGoals={blue:0,red:0,shots:0,tackles:0};
+  document.getElementById('score-blue').textContent='0';
+  document.getElementById('score-red').textContent='0';
+  document.getElementById('event-log').innerHTML='';
+
+  player={ x:CELL_W+CELL_W/2, y:CELL_H*2+CELL_H/2, r:13, hasBall:true };
+
+  teammates=[
+    { id:'tm0', x:CELL_W*0+CELL_W/2, y:CELL_H*2+CELL_H/2-10, r:11, role:'defender' },
+    { id:'tm1', x:CELL_W*2+CELL_W/2, y:CELL_H*2+CELL_H/2-10, r:11, role:'support' },
+  ];
+
+  let ec=randomEnemyCells();
+  enemies=[
+    { id:'en0', x:ec[0].x, y:ec[0].y, r:12, role:'striker',
+      drib:rnd(15,25), shoot:rnd(70,85), def:rnd(20,40) },
+    { id:'en1', x:ec[1].x, y:ec[1].y, r:12, role:'midfielder',
+      drib:rnd(40,55), shoot:rnd(40,55), def:rnd(40,55) },
+    { id:'en2', x:ec[2].x, y:ec[2].y, r:12, role:'defender',
+      drib:rnd(10,20), shoot:rnd(10,25), def:rnd(70,85) },
+  ];
+
+  ball={ x:player.x, y:player.y };
+  ballCarrier='player'; hasPossession=true;
+
+  // GK — patrols the opponent goal line
+  gk = { x: FIELD_W/2, y: 22, r: 13, role:'gk', reflexes: rnd(40,75) };
+
+  updatePossessionUI();
+}
+
+function randomEnemyCells(){
+  let sc=rnd(0,2);
+  let mcs=[0,1,2].filter(c=>c!==sc); let mc=mcs[rnd(0,1)];
+  let dc=[0,1,2].filter(c=>c!==sc&&c!==mc)[0];
+  return [
+    { x:sc*CELL_W+CELL_W/2, y:CELL_H*2+CELL_H/2 },
+    { x:mc*CELL_W+CELL_W/2, y:CELL_H*1+CELL_H/2 },
+    { x:dc*CELL_W+CELL_W/2, y:CELL_H*0+CELL_H/2 },
+  ];
+}
+
+// ===== DRAW =====
+function draw(){
+  ctx.clearRect(0,0,FIELD_W,FIELD_H);
+
+  // Dark field bg
+  ctx.fillStyle='#0a1a0a';
+  ctx.fillRect(0,0,FIELD_W,FIELD_H);
+
+  // Alternating lane stripes
+  for(let r=0;r<ROWS;r++){
+    if(r%2===0){ ctx.fillStyle='rgba(0,255,100,0.025)'; ctx.fillRect(0,r*CELL_H,FIELD_W,CELL_H); }
+  }
+
+  // Grid lines — blue lock neon style
+  ctx.strokeStyle='rgba(0,170,255,0.2)'; ctx.lineWidth=1;
+  for(let c=1;c<COLS;c++){ ctx.beginPath(); ctx.moveTo(c*CELL_W,0); ctx.lineTo(c*CELL_W,FIELD_H); ctx.stroke(); }
+  for(let r=1;r<ROWS;r++){ ctx.beginPath(); ctx.moveTo(0,r*CELL_H); ctx.lineTo(FIELD_W,r*CELL_H); ctx.stroke(); }
+
+  // Goals — neon glowing
+  ctx.shadowColor='#00eeff'; ctx.shadowBlur=10;
+  ctx.strokeStyle='rgba(0,238,255,0.7)'; ctx.lineWidth=2.5;
+  ctx.strokeRect(CELL_W*0.8,-6,CELL_W*1.4,16); // top
+  ctx.strokeStyle='rgba(255,34,68,0.7)';
+  ctx.shadowColor='#ff2244';
+  ctx.strokeRect(CELL_W*0.8,FIELD_H-10,CELL_W*1.4,16); // bottom
+  ctx.shadowBlur=0;
+
+  // Halfway line
+  ctx.strokeStyle='rgba(0,170,255,0.12)'; ctx.lineWidth=1; ctx.setLineDash([6,8]);
+  ctx.beginPath(); ctx.moveTo(0,FIELD_H/2); ctx.lineTo(FIELD_W,FIELD_H/2); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Center circle
+  ctx.beginPath(); ctx.arc(FIELD_W/2,FIELD_H/2,38,0,Math.PI*2);
+  ctx.strokeStyle='rgba(0,170,255,0.12)'; ctx.lineWidth=1; ctx.stroke();
+
+  // Zone labels
+  ctx.fillStyle='rgba(0,170,255,0.07)'; ctx.font='bold 38px Rajdhani'; ctx.textAlign='center';
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+    ctx.fillText(`${r*3+c+1}`,c*CELL_W+CELL_W/2,r*CELL_H+CELL_H/2+14);
+  }
+
+  // Teammates (blue)
+  for(let tm of teammates) drawCirclePlayer(tm,'#0055cc','rgba(0,100,255,0.7)',tm.role==='defender'?'DEF':'SUP');
+
+  // GK — yellow/orange, patrols top goal
+  if(gk){
+    ctx.shadowColor='#ffaa00'; ctx.shadowBlur=12;
+    ctx.beginPath(); ctx.arc(gk.x,gk.y,gk.r,0,Math.PI*2);
+    ctx.fillStyle='#cc7700'; ctx.fill();
+    ctx.strokeStyle='#ffcc44'; ctx.lineWidth=2; ctx.stroke();
+    ctx.shadowBlur=0;
+    ctx.fillStyle='#fff'; ctx.font='bold 7px Rajdhani'; ctx.textAlign='center';
+    ctx.fillText('GK',gk.x,gk.y+2.5); ctx.textAlign='left';
+  }
+
+  // Enemies (red / world five)
+  for(let en of enemies){
+    let lbl=en.role==='striker'?'STR':en.role==='midfielder'?'MID':'DEF';
+    drawCirclePlayer(en,'#aa0022','rgba(255,50,80,0.7)',lbl);
+  }
+
+  // Player (bright blue)
+  ctx.shadowColor='#00eeff'; ctx.shadowBlur=15;
+  ctx.beginPath(); ctx.arc(player.x,player.y,player.r,0,Math.PI*2);
+  ctx.fillStyle='#0088ff'; ctx.fill();
+  ctx.strokeStyle='#00eeff'; ctx.lineWidth=2.5; ctx.stroke();
+  ctx.shadowBlur=0;
+  ctx.fillStyle='#fff'; ctx.font='bold 9px Rajdhani'; ctx.textAlign='center';
+  ctx.fillText('YOU',player.x,player.y+3); ctx.textAlign='left';
+
+  // Ball — always draw at actual ball.x, ball.y position
+  ctx.shadowColor='#ffe566'; ctx.shadowBlur=10;
+  ctx.beginPath(); ctx.arc(ball.x, ball.y, 7, 0, Math.PI*2);
+  ctx.fillStyle='#fff'; ctx.fill();
+  ctx.strokeStyle='#ffe566'; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.shadowBlur=0;
+}
+
+function drawCirclePlayer(p, fill, stroke, label){
+  ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+  ctx.fillStyle=fill; ctx.fill();
+  ctx.strokeStyle=stroke; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.fillStyle='#fff'; ctx.font='bold 7px Rajdhani'; ctx.textAlign='center';
+  ctx.fillText(label,p.x,p.y+2.5); ctx.textAlign='left';
+}
+
+function getCarrierEntity(){
+  if(ballCarrier==='player') return player;
+  if(ballCarrier&&ballCarrier.startsWith('tm')) return teammates.find(t=>t.id===ballCarrier);
+  if(ballCarrier&&ballCarrier.startsWith('en')) return enemies.find(e=>e.id===ballCarrier);
+  return null;
+}
+
+// ===== MOVEMENT =====
+// AI speed is fixed baseline — player speed is handled separately via keyboard
+const SPEED_BASE = 2.5;
+function moveTowards(e,tx,ty,spd){
+  let dx=tx-e.x,dy=ty-e.y,d=Math.hypot(dx,dy);
+  if(d<spd) return false;
+  e.x+=dx/d*spd; e.y+=dy/d*spd;
+  e.x=clamp(e.x,10,FIELD_W-10); e.y=clamp(e.y,10,FIELD_H-10);
+  return true;
+}
+
+function getCarrierPos(){
+  let e=getCarrierEntity(); return e?{x:e.x,y:e.y}:{x:ball.x,y:ball.y};
+}
+
+function setCarrier(id,isPossessionBlue){
+  ballCarrier=id; hasPossession=isPossessionBlue;
+  updatePossessionUI();
+}
+
+function updatePossessionUI(){
+  let d=document.getElementById('possession-display');
+  if(hasPossession){ d.className='possession-indicator poss-blue'; d.textContent='⚽ BLUE LOCK POSSESSION'; }
+  else { d.className='possession-indicator poss-red'; d.textContent='⚽ WORLD FIVE POSSESSION'; }
+}
+
+// ===== AI TICK =====
+function aiTick(){
+  if(!matchRunning) return;
+  const spd=SPEED_BASE;
+
+  // GK — reads player X to anticipate shot, stays on goal line, clamp to goal posts
+  if(gk){
+    // Goal spans from CELL_W*0.8 to CELL_W*0.8 + CELL_W*1.4
+    const GOAL_LEFT  = CELL_W * 0.85;
+    const GOAL_RIGHT = CELL_W * 0.85 + CELL_W * 1.4;
+    // GK tries to position between player and center of goal
+    let gkTargetX = player.x * 0.6 + (FIELD_W/2) * 0.4;
+    gkTargetX = clamp(gkTargetX, GOAL_LEFT + gk.r, GOAL_RIGHT - gk.r);
+    moveTowards(gk, gkTargetX, 22, spd * 0.9);
+  }
+
+  // ENEMY AI
+  for(let en of enemies){
+    let target;
+    if(!hasPossession){
+      if(en.id===ballCarrier){
+        target={x:FIELD_W/2, y:FIELD_H-35};
+      } else {
+        let offX=en.role==='striker'?0:en.role==='midfielder'?(en.x<FIELD_W/2?-55:55):0;
+        target={x:clamp(FIELD_W/2+offX,20,FIELD_W-20), y:FIELD_H*0.6};
+      }
+    } else {
+      let cp=getCarrierPos();
+      if(en.role==='striker') target={x:cp.x+rnd(-15,15),y:cp.y+rnd(-10,10)};
+      else if(en.role==='midfielder') target={x:cp.x+rnd(-70,70),y:clamp(cp.y-40,20,FIELD_H-20)};
+      else target={x:FIELD_W/2+(en.x>FIELD_W/2?45:-45),y:FIELD_H-95};
+    }
+    if(target) moveTowards(en,target.x,target.y,spd*(en.role==='striker'?1.1:0.95));
+  }
+
+  // TEAMMATE AI
+  for(let tm of teammates){
+    if(hasPossession){
+      let offX=tm.id==='tm0'?-CELL_W*0.65:CELL_W*0.65;
+      let tx=clamp(player.x+offX,20,FIELD_W-20);
+      let ty=clamp(player.y-25,20,FIELD_H-20);
+      if(dist(tm,{x:tx,y:ty})>65) moveTowards(tm,tx,ty,spd*0.85);
+    } else {
+      let tx=tm.id==='tm0'?CELL_W/2:CELL_W*2.5;
+      moveTowards(tm,tx,FIELD_H-CELL_H*0.65,spd*0.8);
+    }
+    if(ballCarrier===tm.id) moveTowards(tm,FIELD_W/2,CELL_H,spd);
+  }
+
+  // ENEMY STEAL
+  if(hasPossession){
+    for(let en of enemies){
+      let carrier=getCarrierEntity();
+      if(carrier&&dist(en,carrier)<(en.r+carrier.r+10)){
+        let myDef=en.def||50;
+        let carrierDrib=(carrier===player?save.dribbling:carrier.drib)||10;
+        if(Math.random()*100<myDef-carrierDrib+22){
+          if(carrier===player) logEvent('💥 STRIPPED! World Five takes possession!','bad');
+          else logEvent('💥 Teammate tackled! World Five takes it!','bad');
+          setCarrier(en.id,false);
+        }
+      }
+    }
+  }
+
+  // ENEMY SHOOT
+  if(!hasPossession&&ballCarrier&&ballCarrier.startsWith('en')){
+    let en=enemies.find(e=>e.id===ballCarrier);
+    if(en&&en.y>FIELD_H-85){
+      let shootChance=en.shoot*(0.3+Math.random()*0.7)/100;
+      let defVal=save.defense/100;
+      if(Math.random()<shootChance*(1-defVal*0.5)){
+        scoreRed++;
+        document.getElementById('score-red').textContent=scoreRed;
+        matchGoals.red++;
+        logEvent(`🔴 WORLD FIVE SCORES! ${scoreRed===1?'They level it!':'They take the lead!'}`, 'bad');
+        showNotif('WORLD FIVE GOAL!', true);
+        resetPositions();
+      }
+    }
+    moveTowards(en,FIELD_W/2,FIELD_H-20,spd*1.15);
+  }
+
+  // TEAMMATE SHOOT
+  if(hasPossession&&ballCarrier&&ballCarrier.startsWith('tm')){
+    let tm=teammates.find(t=>t.id===ballCarrier);
+    if(tm&&tm.y<65){
+      if(Math.random()<0.35){
+        scoreBlue++;
+        document.getElementById('score-blue').textContent=scoreBlue;
+        matchGoals.blue++;
+        logEvent('🔵 TEAMMATE SCORES! Blue Lock takes the lead!','good');
+        showNotif('BLUE LOCK GOAL!',false);
+        resetPositions();
+      } else {
+        logEvent('Teammate shot blocked...','neutral');
+        setCarrier(null,false);
+        ball.x=FIELD_W/2; ball.y=CELL_H/2;
+        setTimeout(()=>setCarrier('en2',false),600);
+      }
+    }
+  }
+
+  draw();
+}
+
+// ===== ACTIONS =====
+function doAction(type){
+  if(!matchRunning) return;
+
+  if(type==='dribble'){
+    if(ballCarrier!=='player'){ logEvent("You don't have the ball!",'bad'); return; }
+    let nearEnemy=enemies.find(e=>dist(e,player)<85);
+    if(nearEnemy){
+      let myDrib=save.dribbling, enDef=nearEnemy.def||30;
+      if(Math.random()*100<myDrib-enDef+30+rnd(-10,10)){
+        logEvent('✨ Direct dribble! You get past them!','good');
+        // Burst in the direction the player is moving
+        let burstSpd = 6;
+        vx = lastInputX * burstSpd;
+        vy = lastInputY * burstSpd;
+      } else {
+        logEvent('💥 Dribble read! They take possession!','bad');
+        bvx = (Math.random()-0.5)*6; bvy = (Math.random()-0.5)*6;
+        ball.x=player.x; ball.y=player.y;
+        setCarrier(nearEnemy.id,false);
+        matchGoals.tackles++;
+      }
+    } else {
+      // No enemy nearby — just burst forward in movement direction
+      let burstSpd = 5;
+      vx = lastInputX * burstSpd;
+      vy = lastInputY * burstSpd;
+      logEvent('Dribbled into space','neutral');
+    }
+    draw();
+  }
+
+  else if(type==='shoot'){
+    if(ballCarrier!=='player'){ logEvent("You don't have the ball!",'bad'); return; }
+    if(player.y > FIELD_H * 0.72){ logEvent('🚫 Too deep! Push into the attacking half!','bad'); return; }
+    let allDefendersAhead = enemies.every(e => e.y < player.y - 40);
+    if(allDefendersAhead){ logEvent('❌ All defenders ahead — get past them first!','bad'); return; }
+
+    matchGoals.shots++;
+
+    // --- Where the player aims in the goal ---
+    // High shooting = precise aim toward corners, low = inaccurate toward center
+    const GOAL_LEFT  = CELL_W * 0.85;
+    const GOAL_RIGHT = CELL_W * 0.85 + CELL_W * 1.4;
+    const GOAL_CENTER = (GOAL_LEFT + GOAL_RIGHT) / 2;
+    // Max spread from center depends inversely on shooting skill
+    let maxSpread = (GOAL_RIGHT - GOAL_LEFT) / 2; // half goal width
+    // Player chooses a side (left or right post) and aims there
+    let aimSide = (Math.random() < 0.5 ? -1 : 1);
+    // High shooting = aim near post, low shooting = aim near center (easy for GK)
+    let aimDepth = 0.3 + (save.shooting / 100) * 0.65; // 0.3 at skill 10, ~0.95 at skill 100
+    let aimX = GOAL_CENTER + aimSide * maxSpread * aimDepth;
+    // Add random inaccuracy — worse at low shooting
+    let inaccuracy = (1 - save.shooting/100) * 40;
+    aimX += (Math.random()-0.5) * inaccuracy * 2;
+    aimX = clamp(aimX, GOAL_LEFT - 10, GOAL_RIGHT + 10);
+
+    // Fire ball toward aimX at the goal line
+    let targetY = gk.y;
+    let dx = aimX - player.x;
+    let dy = targetY - player.y;
+    let mag = Math.hypot(dx, dy);
+    let shotSpd = 16 + (save.shooting / 100) * 8;
+    bvx = (dx / mag) * shotSpd;
+    bvy = (dy / mag) * shotSpd;
+    console.log('SHOT fired: bvx='+bvx.toFixed(2)+' bvy='+bvy.toFixed(2)+' ball='+ball.x.toFixed(0)+','+ball.y.toFixed(0)+' player='+player.x.toFixed(0)+','+player.y.toFixed(0)+' gk.y='+gk.y+' mag='+mag.toFixed(2));
+    ball.x = player.x; ball.y = player.y;
+    shotInFlight = true;
+    matchGoals.shots++;
+    setCarrier(null, true);
+    logEvent('🔵 Shot fired!','neutral');
+  }
+
+  else if(type==='pass'){
+    if(ballCarrier!=='player') return;
+    let tm=teammates.reduce((a,b)=>dist(a,player)<dist(b,player)?a:b);
+    logEvent(`Pass to ${tm.role}...`,'neutral');
+    setCarrier(tm.id,true); ball.x=tm.x; ball.y=tm.y;
+    draw();
+  }
+
+  else if(type==='tackle'){
+    if(hasPossession){ logEvent('Blue Lock already has the ball!','neutral'); return; }
+    // Wider range — 130px so you don't have to be pixel-perfect
+    let nearEnemy = enemies.find(e => dist(e,player) < 130 && e.id===ballCarrier);
+    if(!nearEnemy){ logEvent('Get closer to tackle! (V)','bad'); return; }
+    let myDef=save.defense, enDrib=nearEnemy.drib||15;
+    // More generous base chance so it actually works
+    if(Math.random()*100 < myDef - enDrib + 55 + rnd(-8,8)){
+      logEvent('💪 TACKLE! You win it back!','good');
+      matchGoals.tackles++;
+      // Give the ball a little forward momentum when you win it
+      bvx=vx*0.5; bvy=vy*0.5;
+      setCarrier('player',true); ball.x=player.x; ball.y=player.y;
+      bvx=0; bvy=0;
+    } else {
+      logEvent('Tackle missed — try again!','bad');
+    }
+    draw();
+  }
+
+  else if(type==='sprint'){
+    if(ballCarrier!=='player') return;
+    let boostSpd = 7 + (save.speed/100)*4;
+    // Burst in the direction the player is pressing
+    vx = lastInputX * boostSpd;
+    vy = lastInputY * boostSpd;
+    logEvent('⚡ Burst of speed!','neutral');
+  }
+}
+
+// ===== RESET POSITIONS =====
+function resetPositions(){
+  player.x=CELL_W+CELL_W/2; player.y=CELL_H*2+CELL_H/2;
+  teammates[0].x=CELL_W*0+CELL_W/2; teammates[0].y=CELL_H*2+CELL_H/2;
+  teammates[1].x=CELL_W*2+CELL_W/2; teammates[1].y=CELL_H*2+CELL_H/2;
+  let ec=randomEnemyCells();
+  for(let i=0;i<3;i++){ enemies[i].x=ec[i].x; enemies[i].y=ec[i].y; }
+  if(gk) gk.x=FIELD_W/2;
+  shotInFlight = false;
+  setCarrier('player',true);
+}
+
+// ===== PHYSICS / HAXBALL MOVEMENT =====
+let vx = 0, vy = 0;
+const FRICTION       = 0.80;
+const ACCEL          = 0.45;
+const MAX_SPEED_BASE = 2.2;
+let bvx = 0, bvy = 0;
+const BALL_FRICTION  = 0.96;
+let shotInFlight = false;
+// Track last input direction so actions can use it
+let lastInputX = 0, lastInputY = -1; // default pointing upfield
+
+const keysHeld = {};
+document.addEventListener('keydown', e => {
+  if(rebinding) return; // handled above
+  keysHeld[e.code] = true;
+  if(!matchRunning) return;
+  if(e.code===controls.shoot)   { e.preventDefault(); doAction('shoot'); }
+  if(e.code===controls.dribble) { e.preventDefault(); doAction('dribble'); }
+  if(e.code===controls.pass)    { e.preventDefault(); doAction('pass'); }
+  if(e.code===controls.tackle)  { e.preventDefault(); doAction('tackle'); }
+  if(e.code===controls.sprint)  { e.preventDefault(); doAction('sprint'); }
+  const mv = [controls.up, controls.down, controls.left, controls.right,
+              'ArrowUp','ArrowDown','ArrowLeft','ArrowRight'];
+  if(mv.includes(e.code)) e.preventDefault();
+});
+document.addEventListener('keyup', e => { keysHeld[e.code] = false; });
+
+// ===== GAME LOOP (60fps) =====
+let gameLoop = null;
+function startGameLoop(){
+  if(gameLoop) cancelAnimationFrame(gameLoop);
+  function loop(){
+    if(!matchRunning) return;
+    physicsStep();
+    draw();
+    gameLoop = requestAnimationFrame(loop);
+  }
+  gameLoop = requestAnimationFrame(loop);
+}
+
+function physicsStep(){
+  const maxSpd = MAX_SPEED_BASE + (save.speed / 100) * 2.0;
+
+  // Track raw input direction (before friction) for ball positioning
+  let inputX = 0, inputY = 0;
+  if(keysHeld[controls.up]   ||keysHeld['ArrowUp'])    inputY -= 1;
+  if(keysHeld[controls.down] ||keysHeld['ArrowDown'])   inputY += 1;
+  if(keysHeld[controls.left] ||keysHeld['ArrowLeft'])   inputX -= 1;
+  if(keysHeld[controls.right]||keysHeld['ArrowRight'])  inputX += 1;
+
+  // Normalize input direction
+  let inputMag = Math.hypot(inputX, inputY);
+  if(inputMag > 0){
+    inputX /= inputMag; inputY /= inputMag;
+    lastInputX = inputX; lastInputY = inputY; // remember last direction
+  }
+
+  // Apply acceleration
+  vx += inputX * ACCEL;
+  vy += inputY * ACCEL;
+
+  // Clamp to max speed
+  let spd = Math.hypot(vx,vy);
+  if(spd > maxSpd){ vx = vx/spd*maxSpd; vy = vy/spd*maxSpd; }
+
+  // Save pre-friction velocity for ball direction
+  let rawVx = vx, rawVy = vy;
+
+  // Friction & move player
+  vx *= FRICTION; vy *= FRICTION;
+  if(Math.abs(vx)<0.05) vx=0;
+  if(Math.abs(vy)<0.05) vy=0;
+  player.x = clamp(player.x + vx, player.r, FIELD_W - player.r);
+  player.y = clamp(player.y + vy, player.r, FIELD_H - player.r);
+
+  if(ballCarrier==='player'){
+    let offset = player.r + 7;
+    let rawMag = Math.hypot(rawVx, rawVy);
+    if(rawMag > 0.2){
+      // Ball leads in the direction of movement
+      ball.x = player.x + (rawVx / rawMag) * offset;
+      ball.y = player.y + (rawVy / rawMag) * offset;
+    } else {
+      ball.x = player.x;
+      ball.y = player.y - offset;
+    }
+    bvx=0; bvy=0; shotInFlight=false;
+  } else {
+    // Ball moves freely (loose or shot)
+    // Only apply friction when rolling loose, not during shots
+    if(!shotInFlight){
+      bvx *= BALL_FRICTION; bvy *= BALL_FRICTION;
+      if(Math.abs(bvx)<0.08) bvx=0;
+      if(Math.abs(bvy)<0.08) bvy=0;
+    }
+    ball.x += bvx; ball.y += bvy;
+
+    // Bounce off side walls
+    if(ball.x < 8)         { ball.x=8;           bvx=Math.abs(bvx)*0.6; }
+    if(ball.x > FIELD_W-8) { ball.x=FIELD_W-8;   bvx=-Math.abs(bvx)*0.6; }
+    // Bottom wall
+    if(ball.y > FIELD_H-8) { ball.y=FIELD_H-8;   bvy=-Math.abs(bvy)*0.5; }
+    if(!shotInFlight && ball.y < 8){ ball.y=8; bvy=Math.abs(bvy)*0.5; }
+
+    // Real-time shot checks
+    if(shotInFlight){
+      const GOAL_LEFT  = CELL_W * 0.85;
+      const GOAL_RIGHT = CELL_W * 0.85 + CELL_W * 1.4;
+
+      // GK intercept
+      if(gk && Math.hypot(ball.x-gk.x, ball.y-gk.y) < gk.r+9){
+        let bounceAngle = Math.atan2(ball.y-gk.y, ball.x-gk.x);
+        bvx = Math.cos(bounceAngle)*(4+Math.random()*3);
+        bvy = Math.sin(bounceAngle)*(4+Math.random()*3);
+        shotInFlight=false; ballCarrier=null; hasPossession=false;
+        updatePossessionUI();
+        logEvent('🧤 GK saves it!','neutral');
+      }
+      // Defender block
+      for(let en of enemies){
+        if(en.y < ball.y+20 && Math.hypot(ball.x-en.x, ball.y-en.y) < en.r+7){
+          let bounceAngle = Math.atan2(ball.y-en.y, ball.x-en.x);
+          bvx = Math.cos(bounceAngle)*(3+Math.random()*3);
+          bvy = Math.sin(bounceAngle)*(3+Math.random()*3);
+          shotInFlight=false; ballCarrier=null; hasPossession=false;
+          updatePossessionUI();
+          logEvent(`🛡️ Shot blocked by ${en.role}!`,'neutral');
+          break;
+        }
+      }
+      // Ball reaches goal line
+      if(ball.y <= 10){
+        shotInFlight=false;
+        if(ball.x >= GOAL_LEFT && ball.x <= GOAL_RIGHT){
+          // GOAL
+          logEvent('🔵 GOAL!!','good');
+          showNotif('GOAL!!',false);
+          bvx=0; bvy=0;
+          setTimeout(()=>{
+            scoreBlue++;
+            document.getElementById('score-blue').textContent=scoreBlue;
+            matchGoals.blue++;
+            resetPositions();
+          },400);
+        } else {
+          // Wide
+          logEvent('😤 Shot wide!','bad');
+          bvx=0; bvy=0;
+          ball.x=FIELD_W/2; ball.y=50;
+          setTimeout(()=>{ setCarrier('en2',false); },400);
+        }
+      }
+    }
+
+    // Auto-pickup loose ball (only when not a shot in flight)
+    if(!shotInFlight && !ballCarrier && dist(player,ball)<player.r+10){
+      setCarrier('player',true); ball.x=player.x; ball.y=player.y;
+      bvx=0; bvy=0;
+      logEvent('⚽ You pick up the ball!','good');
+    }
+
+    // Teammate picks up loose ball
+    if(!shotInFlight && !ballCarrier){
+      for(let tm of teammates){
+        if(dist(tm,ball)<tm.r+10){
+          setCarrier(tm.id,true); ball.x=tm.x; ball.y=tm.y;
+          bvx=0; bvy=0; break;
+        }
+      }
+    }
+  }
+
+  // Running into enemy ball carrier — body contact steal
+  if(!hasPossession && ballCarrier && ballCarrier.startsWith('en')){
+    let en = enemies.find(x=>x.id===ballCarrier);
+    if(en && dist(player,en) < player.r+en.r+16){
+      let chance = save.defense - (en.drib||15) + 30 + rnd(-8,8);
+      if(Math.random()*100 < chance){
+        setCarrier('player',true); ball.x=player.x; ball.y=player.y;
+        bvx=0; bvy=0;
+        logEvent('⚽ You shoulder it off them!','good');
+      }
+    }
+  }
+}
+
+// ===== KEYBOARD =====
+// (action keys handled in keydown above, movement via physicsStep)
+
+canvas.addEventListener('click',e=>{
+  // click-to-move removed in physics mode — WASD/arrows only
+});
+
+// ===== TIMER =====
+function startMatchTimer(){
+  let elapsed=0;
+  let fill=document.getElementById('timer-fill');
+  let disp=document.getElementById('timer-display');
+  function fmt(s){ let m=Math.floor(s/60); let sec=s%60; return `${m}:${sec.toString().padStart(2,'0')}` }
+  let t=setInterval(()=>{
+    if(!matchRunning){ clearInterval(t); return; }
+    elapsed++; matchTime=120-elapsed;
+    fill.style.width=(matchTime/120*100)+'%';
+    disp.textContent=fmt(matchTime);
+    // Turn red in last 30s
+    if(matchTime<=30){ disp.style.color='var(--bl-red)'; disp.style.textShadow='0 0 15px var(--bl-red)'; }
+    else { disp.style.color='var(--bl-cyan)'; disp.style.textShadow='0 0 15px var(--bl-cyan)'; }
+    if(elapsed>=120){ clearInterval(t); endMatch(); }
+  },1000);
+}
+
+// ===== SCREENS =====
+function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+
+function startMatch(){
+  initMatch(); show('game'); matchRunning=true;
+  vx=0; vy=0; bvx=0; bvy=0;
+  document.getElementById('gs-drib').textContent=save.dribbling;
+  document.getElementById('gs-shoot').textContent=save.shooting;
+  document.getElementById('gs-def').textContent=save.defense;
+  document.getElementById('gs-spd').textContent=save.speed;
+  startMatchTimer();
+  aiInterval=setInterval(aiTick,100);
+  startGameLoop();
+  updateControlsHint();
+  logEvent('Kickoff — Blue Lock has possession','neutral');
+}
+
+function endMatch(){
+  matchRunning=false;
+  clearInterval(aiInterval);
+  if(gameLoop){ cancelAnimationFrame(gameLoop); gameLoop=null; }
+  vx=0; vy=0; bvx=0; bvy=0; shotInFlight=false;
+  save.totalMatches++; postMatch=true; extraTraining=true;
+  save.trainingToday=0; saveGame();
+
+  let won=scoreBlue>scoreRed, draw=scoreBlue===scoreRed;
+  let rt=document.getElementById('result-title');
+  rt.textContent=won?'VICTORY':draw?'DRAW':'ELIMINATED';
+  rt.style.color=won?'#00eeff':draw?'#aaaacc':'#ff2244';
+  document.getElementById('result-score').textContent=`${scoreBlue} — ${scoreRed}`;
+  let quotes=won?winQuotes:loseQuotes;
+  document.getElementById('result-quote').textContent=`"${quotes[rnd(0,quotes.length-1)]}"`;
+  document.getElementById('result-details').innerHTML=
+    `Shots: ${matchGoals.shots} &nbsp;|&nbsp; Goals: ${matchGoals.blue} &nbsp;|&nbsp; Tackles: ${matchGoals.tackles}<br>
+     Matches played: ${save.totalMatches}<br>
+     ${won?'⚡ Post-match training unlocked!':draw?'Close match.':'Train harder. Blue Lock demands more.'}`;
+  show('result');
+}
+
+function goToTraining(){ postMatch=false; renderTraining(); show('training'); }
+function goToTrainingPost(){ renderTraining(); show('training'); }
+
+function backToMenu(){
+  postMatch=false; extraTraining=false;
+  renderMenu(); show('menu');
+}
+
+function renderMenu(){
+  updateStatBars();
+  let rem=TRAIN_PER_DAY-save.trainingToday;
+  document.getElementById('train-remaining-text').textContent=
+    rem>0?`TRAINING SESSIONS: ${rem}/${TRAIN_PER_DAY} REMAINING`:`DAILY LIMIT REACHED — PLAY A MATCH FOR MORE`;
+  document.getElementById('btn-train').classList.toggle('disabled',rem<=0&&!extraTraining);
+}
+
+function updateStatBars(){
+  for(let [key,val] of [['drib',save.dribbling],['shoot',save.shooting],['def',save.defense],['spd',save.speed]]){
+    document.getElementById(`stat-${key}-bar`).style.width=(val/MAX_STAT*100)+'%';
+    document.getElementById(`stat-${key}-val`).textContent=val+'/100';
+  }
+}
+
+function renderTraining(){
+  let used=save.trainingToday, max=TRAIN_PER_DAY;
+  document.getElementById('train-session-info').textContent=
+    extraTraining?`// POST-MATCH TRAINING — UNLIMITED SESSIONS`:`// SESSIONS: ${used}/${max}`;
+  document.getElementById('train-msg').textContent='Select a stat to train.';
+  for(let [key,id] of [['dribbling','tc-drib'],['shooting','tc-shoot'],['defense','tc-def'],['speed','tc-spd'],['strength','tc-str'],['stamina','tc-stam']]){
+    document.getElementById(id+'-val').textContent=`${save[key]}/100`;
+  }
+}
+
+function doTrain(stat){
+  if(!extraTraining&&save.trainingToday>=TRAIN_PER_DAY){ showNotif('DAILY LIMIT REACHED',true); return; }
+  let gain=rnd(2,5);
+  save[stat]=clamp((save[stat]||10)+gain,0,MAX_STAT);
+  if(!extraTraining) save.trainingToday++;
+  saveGame();
+  document.getElementById('train-msg').textContent=`▲ ${stat.toUpperCase()} +${gain}  →  NOW ${save[stat]}/100`;
+  renderTraining();
+}
+
+function saveGame(){ localStorage.setItem('blueLockRPG',JSON.stringify(save)); }
+
+function resetGame(){
+  if(!confirm('Delete all Blue Lock data?')) return;
+  localStorage.removeItem('blueLockRPG'); location.reload();
+}
+
+// ===== NOTIF =====
+let notifTimer=null;
+function showNotif(msg,isRed=false){
+  let n=document.getElementById('notif');
+  n.textContent=msg;
+  n.className=isRed?'show':'show goal-notif';
+  clearTimeout(notifTimer); notifTimer=setTimeout(()=>n.className='',2200);
+}
+
+// ===== LOG =====
+function logEvent(msg,type='neutral'){
+  let log=document.getElementById('event-log');
+  let div=document.createElement('div'); div.className='ev '+type; div.textContent=msg;
+  log.insertBefore(div,log.firstChild);
+  if(log.children.length>20) log.removeChild(log.lastChild);
+}
+
+// ===== EGO INTRO =====
+function showEgo(){
+  let q=egoQuotes[rnd(0,egoQuotes.length-1)];
+  document.getElementById('ego-text').textContent=`"${q}"`;
+  document.getElementById('egoscreen').classList.add('show');
+}
+function dismissEgo(){ document.getElementById('egoscreen').classList.remove('show'); }
+
+// ===== INIT =====
+renderMenu();
+show('menu');
+// Show Ego quote on first load
+if(save.totalMatches===0) setTimeout(showEgo,400);
+</script>
+</body>
+</html>
